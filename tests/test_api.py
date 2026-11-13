@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from photo_hunt.app import create_app, load_songs
+from photo_hunt.app import create_app
 from photo_hunt.config import Settings, VisionMode
 from photo_hunt.vision import CheckResult
 
@@ -39,8 +39,15 @@ def setup(tmp_path: Path):
     songs.write_text(
         json.dumps(
             [
-                {"title": "A", "item": "кружка", "lyric": "л", "file": "song.mp3", "stop_at": 3},
-                {"title": "B", "item": "очки", "file": "../secret.txt"},
+                {
+                    "id": "a",
+                    "title": "A",
+                    "item": "кружка",
+                    "lyric": "л",
+                    "file": "song.mp3",
+                    "stop_at": 3,
+                },
+                {"id": "b", "title": "B", "item": "очки", "file": "../secret.txt"},
             ]
         ),
         encoding="utf-8",
@@ -94,9 +101,80 @@ def test_songs_hide_file_and_block_path_escape(setup):
     client, *_ = setup
     songs = client.get("/api/host/songs", headers=H).json()
     assert songs[0]["has_music"] is True and "file" not in songs[0]
-    assert client.get("/api/host/music/0", headers=H).content == b"ID3fake"
-    assert client.get("/api/host/music/1", headers=H).status_code == 404
-    assert client.get("/api/host/music/9", headers=H).status_code == 404
+    assert client.get("/api/host/music/a", headers=H).content == b"ID3fake"
+    assert client.get("/api/host/music/b", headers=H).status_code == 404
+    assert client.get("/api/host/music/zzz", headers=H).status_code == 404
+
+
+def test_song_editor_over_http(setup, tmp_path: Path):
+    client, *_ = setup
+    assert client.post("/api/host/songs", json={"title": "N", "item": "x"}).status_code == 401
+    created = client.post(
+        "/api/host/songs", json={"title": "Новая", "item": "очки", "stop_at": 10}, headers=H
+    )
+    assert created.status_code == 201
+    sid = created.json()["id"]
+    assert (
+        client.post("/api/host/songs", json={"title": "", "item": "x"}, headers=H).status_code
+        == 422
+    )
+
+    updated = client.put(
+        f"/api/host/songs/{sid}",
+        json={"title": "Новая", "item": "шапка", "stop_at": 12.3},
+        headers=H,
+    ).json()
+    assert updated["item"] == "шапка" and updated["has_music"] is False
+
+    music = client.put(
+        f"/api/host/songs/{sid}/music",
+        files={"music": ("x.mp3", b"ID3data", "audio/mpeg")},
+        headers=H,
+    )
+    assert music.json()["has_music"] is True
+    assert client.get(f"/api/host/music/{sid}", headers=H).content == b"ID3data"
+    bad = client.put(
+        f"/api/host/songs/{sid}/music",
+        files={"music": ("x.mp3", b"<html>", "audio/mpeg")},
+        headers=H,
+    )
+    assert bad.status_code == 400
+    assert (
+        client.put(
+            "/api/host/songs/zzz/music", files={"music": ("x", b"ID3", "audio/mpeg")}, headers=H
+        )
+    ).status_code == 404
+
+    saved = json.loads((tmp_path / "songs.json").read_text(encoding="utf-8"))
+    assert [s["title"] for s in saved] == ["A", "B", "Новая"]
+
+    assert client.delete(f"/api/host/songs/{sid}", headers=H).status_code == 204
+    assert client.delete(f"/api/host/songs/{sid}", headers=H).status_code == 404
+    assert [s["id"] for s in client.get("/api/host/songs", headers=H).json()] == ["a", "b"]
+
+
+def test_music_size_limit(tmp_path: Path):
+    settings = Settings(
+        host_token=HOST,
+        vision_mode=VisionMode.FAKE,
+        songs_file=tmp_path / "songs.json",
+        music_dir=tmp_path / "music",
+        max_music_bytes=10,
+    )
+    with TestClient(create_app(settings, checker=ScriptedChecker(None))) as client:
+        sid = client.post("/api/host/songs", json={"title": "A", "item": "x"}, headers=H).json()[
+            "id"
+        ]
+        r = client.put(
+            f"/api/host/songs/{sid}/music", files={"music": ("x", b"ID3" + b"0" * 20)}, headers=H
+        )
+        assert r.status_code == 413
+
+
+def test_healthz_and_songs_page(setup):
+    client, *_ = setup
+    assert client.get("/healthz").json() == {"ok": True, "phase": "lobby", "players": 0}
+    assert "Песни" in client.get("/songs").text
 
 
 def test_full_round_over_http(setup):
@@ -205,11 +283,3 @@ def test_settings_fail_fast():
         Settings(host_token=HOST, vision_mode=VisionMode.OPENAI, openai_api_key=None)
     with pytest.raises(ValueError):
         Settings(host_token="short", vision_mode=VisionMode.FAKE)
-
-
-def test_load_songs_missing_and_invalid(tmp_path: Path):
-    assert load_songs(tmp_path / "none.json") == []
-    bad = tmp_path / "bad.json"
-    bad.write_text('{"not": "list"}', encoding="utf-8")
-    with pytest.raises(ValueError):
-        load_songs(bad)

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Фотоохота: песни</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <form id="login" class="login" hidden>
+    <h1>Песни</h1>
+    <label for="host-token">Пароль ведущего</label>
+    <input id="host-token" type="password" autocomplete="current-password" required>
+    <button class="primary" type="submit">Войти</button>
+    <p class="error" id="login-error" role="alert"></p>
+  </form>
+
+  <div id="app" class="songs-page" hidden>
+    <section class="card">
+      <div class="row head">
+        <strong>Песни</strong>
+        <a class="btn" href="/host">К игре</a>
+      </div>
+      <div class="song-list" id="list"></div>
+      <button id="btn-new" type="button">Добавить песню</button>
+    </section>
+
+    <form class="card" id="form">
+      <strong id="form-title">Новая песня</strong>
+      <label for="title">Название</label>
+      <input id="title" maxlength="120" required>
+      <label for="item">Предмет для фото</label>
+      <input id="item" maxlength="60" required>
+      <label for="lyric">Строчка из песни (показывается вместе с предметом)</label>
+      <input id="lyric" maxlength="200">
+      <label for="stop-at">Остановить на секунде</label>
+      <input id="stop-at" type="number" min="0" max="3600" step="0.1" placeholder="пусто: ведущий жмёт «Стоп» сам">
+      <label for="music">Файл песни (mp3, m4a, ogg, flac, wav)</label>
+      <input id="music" type="file" accept="audio/*">
+
+      <div id="player" class="card inner" hidden>
+        <audio id="audio" controls></audio>
+        <div class="row">
+          <button id="btn-mark" type="button">Остановить здесь</button>
+          <button id="btn-test" type="button">Проверить остановку</button>
+        </div>
+        <span class="muted">Включи песню и нажми «Остановить здесь» сразу после нужного слова. Потом сохрани.</span>
+      </div>
+
+      <div class="row">
+        <button class="primary" type="submit" id="btn-save">Сохранить</button>
+        <button class="bad" type="button" id="btn-delete" hidden>Удалить</button>
+      </div>
+      <p class="muted" id="saved" role="status"></p>
+      <p class="error" id="error" role="alert"></p>
+    </form>
+  </div>
+  <script src="/static/common.js"></script>
+  <script src="/static/songs.js"></script>
+</body>
+</html>

@@ -35,6 +35,21 @@ async function api(path, { method = "GET", body, headers = {}, form } = {}) {
   return type.includes("application/json") ? res.json() : res;
 }
 
+function withHostToken(token, path, opts = {}) {
+  return api(path, { ...opts, headers: { ...(opts.headers || {}), "X-Host-Token": token } });
+}
+
+function el(tag, attrs = {}, children = []) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "text") node.textContent = v;
+    else if (k === "class") node.className = v;
+    else node.setAttribute(k, v);
+  }
+  for (const c of children) node.append(c);
+  return node;
+}
+
 function socket(path, token, onMessage, onAuthFailed) {
   let delay = 500;
   let stopped = false;

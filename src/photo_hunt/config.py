@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     vision_timeout_s: float = Field(default=15.0, gt=0)
     fake_delay_s: float = Field(default=1.0, ge=0)
     max_photo_bytes: int = Field(default=3_000_000, gt=0)
+    max_music_bytes: int = Field(default=30_000_000, gt=0)
 
     songs_file: Path = Path("data") / "songs.json"
     music_dir: Path = Path("data") / "music"

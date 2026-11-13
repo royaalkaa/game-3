@@ -1,7 +1,6 @@
 import asyncio
 import contextlib
 import io
-import json
 import logging
 import secrets
 import time
@@ -14,11 +13,12 @@ import segno
 from fastapi import FastAPI, Header, HTTPException, Request, UploadFile, WebSocket
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 from starlette.websockets import WebSocketDisconnect
 
 from photo_hunt.config import Settings, VisionMode
 from photo_hunt.game import Game, GameError, Phase, Player, Submission
+from photo_hunt.songs import BadMusicError, SongIn, SongLibrary, SongNotFoundError
 from photo_hunt.vision import FakeChecker, OpenAIChecker, PhotoChecker, decide, detect_image_type
 
 log = logging.getLogger(__name__)
@@ -26,14 +26,6 @@ log = logging.getLogger(__name__)
 STATIC_DIR = Path(__file__).parent / "static"
 HOST_PUSH_INTERVAL_S = 0.25
 WS_AUTH_TIMEOUT_S = 10.0
-
-
-class Song(BaseModel):
-    title: str = Field(max_length=120)
-    item: str = Field(max_length=60)
-    lyric: str = Field(default="", max_length=200)
-    file: str | None = Field(default=None, max_length=200)
-    stop_at: float | None = Field(default=None, ge=0)
 
 
 class JoinIn(BaseModel):
@@ -52,23 +44,6 @@ class HuntIn(BaseModel):
 
 class DecideIn(BaseModel):
     accept: bool
-
-
-def load_songs(path: Path) -> list[Song]:
-    if not path.is_file():
-        return []
-    raw = path.read_text(encoding="utf-8")
-    try:
-        return [Song.model_validate(s) for s in _json_list(raw)]
-    except (ValidationError, ValueError) as exc:
-        raise ValueError(f"songs file is invalid: {path}") from exc
-
-
-def _json_list(raw: str) -> list[Any]:
-    data = json.loads(raw)
-    if not isinstance(data, list):
-        raise ValueError("songs file must contain a list")
-    return data
 
 
 class Hub:
@@ -182,7 +157,7 @@ def create_app(
 ) -> FastAPI:
     settings = settings or Settings()  # type: ignore[call-arg]
     checker = checker or build_checker(settings)
-    songs = load_songs(settings.songs_file)
+    library = SongLibrary.load(settings.songs_file, settings.music_dir)
     game = Game()
     hub = Hub()
     background: set[asyncio.Task[None]] = set()
@@ -261,7 +236,23 @@ def create_app(
     async def _game_error(_: Request, exc: GameError) -> JSONResponse:
         return JSONResponse(status_code=409, content={"detail": str(exc)})
 
+    @app.exception_handler(SongNotFoundError)
+    async def _song_missing(_: Request, __: SongNotFoundError) -> JSONResponse:
+        return JSONResponse(status_code=404, content={"detail": "Песня не найдена"})
+
+    @app.exception_handler(BadMusicError)
+    async def _bad_music(_: Request, exc: BadMusicError) -> JSONResponse:
+        return JSONResponse(status_code=400, content={"detail": str(exc)})
+
     # --- страницы ---
+
+    @app.get("/healthz", include_in_schema=False)
+    async def healthz() -> dict[str, Any]:
+        return {"ok": True, "phase": game.phase, "players": len(game.players)}
+
+    @app.get("/songs", include_in_schema=False)
+    async def songs_page() -> FileResponse:
+        return FileResponse(STATIC_DIR / "songs.html")
 
     @app.get("/", include_in_schema=False)
     async def play_page() -> FileResponse:
@@ -323,20 +314,46 @@ def create_app(
     @app.get("/api/host/songs")
     async def host_songs(x_host_token: str | None = Header(default=None)) -> list[dict[str, Any]]:
         require_host(x_host_token)
-        return [
-            {**s.model_dump(exclude={"file"}), "id": i, "has_music": s.file is not None}
-            for i, s in enumerate(songs)
-        ]
+        return [s.public() for s in library.songs]
+
+    @app.post("/api/host/songs", status_code=201)
+    async def host_add_song(
+        body: SongIn, x_host_token: str | None = Header(default=None)
+    ) -> dict[str, Any]:
+        require_host(x_host_token)
+        return library.add(body).public()
+
+    @app.put("/api/host/songs/{song_id}")
+    async def host_update_song(
+        song_id: str, body: SongIn, x_host_token: str | None = Header(default=None)
+    ) -> dict[str, Any]:
+        require_host(x_host_token)
+        return library.update(song_id, body).public()
+
+    @app.put("/api/host/songs/{song_id}/music")
+    async def host_upload_music(
+        song_id: str, music: UploadFile, x_host_token: str | None = Header(default=None)
+    ) -> dict[str, Any]:
+        require_host(x_host_token)
+        library.get(song_id)
+        data = await music.read(settings.max_music_bytes + 1)
+        if len(data) > settings.max_music_bytes:
+            raise HTTPException(status_code=413, detail="Файл песни слишком большой")
+        return library.set_music(song_id, data).public()
+
+    @app.delete("/api/host/songs/{song_id}", status_code=204)
+    async def host_delete_song(
+        song_id: str, x_host_token: str | None = Header(default=None)
+    ) -> None:
+        require_host(x_host_token)
+        library.delete(song_id)
 
     @app.get("/api/host/music/{song_id}")
-    async def host_music(song_id: int, x_host_token: str | None = Header(default=None)) -> Response:
+    async def host_music(song_id: str, x_host_token: str | None = Header(default=None)) -> Response:
         require_host(x_host_token)
-        if not 0 <= song_id < len(songs) or songs[song_id].file is None:
-            raise HTTPException(status_code=404, detail="Нет файла песни")
         # Имя файла берётся только из songs.json, а не из запроса.
-        base = settings.music_dir.resolve()
-        path = (base / str(songs[song_id].file)).resolve()
-        if base not in path.parents or not path.is_file():
+        path = library.music_path(song_id)
+        if path is None:
             raise HTTPException(status_code=404, detail="Нет файла песни")
         return FileResponse(path)
 

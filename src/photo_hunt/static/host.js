@@ -19,20 +19,7 @@ let currentSong = null;
 let advanceTouched = false;
 const photoUrls = new Map();
 
-function el(tag, attrs = {}, children = []) {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === "text") node.textContent = v;
-    else if (k === "class") node.className = v;
-    else node.setAttribute(k, v);
-  }
-  for (const c of children) node.append(c);
-  return node;
-}
-
-function hostApi(path, opts = {}) {
-  return api(path, { ...opts, headers: { ...(opts.headers || {}), "X-Host-Token": token } });
-}
+const hostApi = (path, opts) => withHostToken(token, path, opts);
 
 async function run(action) {
   els.error.textContent = "";
