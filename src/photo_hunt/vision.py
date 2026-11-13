@@ -134,7 +134,7 @@ class OpenAIChecker:
                     timeout=self._timeout_s,
                 )
             except (TimeoutError, openai.OpenAIError) as exc:
-                log.warning("vision_unavailable", extra={"error_type": type(exc).__name__})
+                log.warning("vision_unavailable error_type=%s", type(exc).__name__)
                 return None
         if not response.choices:
             return None
