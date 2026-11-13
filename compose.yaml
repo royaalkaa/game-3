@@ -1,0 +1,36 @@
+# Запуск на сервере: docker compose up -d --build
+# Настройки берутся из .env рядом с этим файлом (образец в .env.example).
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PH_PUBLIC_URL: https://${PH_DOMAIN:?PH_DOMAIN не задан в .env}
+    volumes:
+      - app-data:/app/data
+    # Порт наружу не открываем: игроки ходят только через Caddy по HTTPS.
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2.10
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      PH_DOMAIN: ${PH_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  app-data:
+  caddy-data:
+  caddy-config:

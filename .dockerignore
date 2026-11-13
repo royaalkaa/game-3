@@ -1,0 +1,13 @@
+.env
+.git
+.venv
+.claude
+**/__pycache__
+.pytest_cache
+.ruff_cache
+.coverage
+htmlcov
+tests
+scripts
+data/eval
+data/music

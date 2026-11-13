@@ -1,0 +1,13 @@
+# Caddy сам получает и продлевает сертификат Let's Encrypt для PH_DOMAIN.
+# Для PH_DOMAIN=localhost выпускает свой локальный сертификат: так проверяется сборка на ПК.
+
+{$PH_DOMAIN} {
+	encode zstd gzip
+
+	# Файл песни до 30 МБ плюс запас на заголовки формы.
+	request_body {
+		max_size 35MB
+	}
+
+	reverse_proxy app:8000
+}
