@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Фотоохота</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="player">
+    <section id="join" hidden>
+      <h1>Фотоохота</h1>
+      <p class="muted">Музыка остановится, на экране появится предмет. Найди его и сфоткайся с ним быстрее остальных.</p>
+      <form id="join-form" class="panel">
+        <label for="name">Как тебя показать на экране</label>
+        <input id="name" maxlength="24" autocomplete="nickname" required>
+        <button class="primary big-btn" type="submit">Играть</button>
+      </form>
+    </section>
+
+    <section id="game" hidden>
+      <p class="muted" id="round"></p>
+      <h1 id="title"></h1>
+      <div class="item" id="item" hidden></div>
+      <p class="muted" id="lyric" hidden></p>
+      <div class="timer" id="timer" hidden></div>
+      <p class="status" id="status"></p>
+      <button class="primary big-btn" id="shoot" type="button" hidden>Сфоткаться с предметом</button>
+      <input id="camera" type="file" accept="image/*" capture="user" hidden>
+    </section>
+
+    <p class="error" id="error" role="alert"></p>
+  </main>
+  <script src="/static/common.js"></script>
+  <script src="/static/play.js"></script>
+</body>
+</html>

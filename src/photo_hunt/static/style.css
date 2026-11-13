@@ -1,0 +1,147 @@
+:root {
+  --bg: #0f1115;
+  --surface: #1a1d24;
+  --surface-2: #242833;
+  --border: #343a48;
+  --text: #f2f3f5;
+  --muted: #9aa1b1;
+  --primary: #f5c518;
+  --primary-text: #111111;
+  --ok: #3ecf8e;
+  --bad: #f06a6a;
+  --warn: #f0a94a;
+  --radius: 12px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  line-height: 1.4;
+}
+
+[hidden] { display: none !important; }
+
+button, .btn {
+  font: inherit;
+  font-weight: 600;
+  padding: 12px 18px;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 150ms;
+}
+button:hover { border-color: var(--muted); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.primary { background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
+button.ok { border-color: var(--ok); }
+button.bad { border-color: var(--bad); }
+
+input, select {
+  font: inherit;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+}
+
+label { display: block; font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+
+.muted { color: var(--muted); }
+.error { color: var(--bad); min-height: 1.4em; }
+
+/* ---------- игрок ---------- */
+
+.player {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: center;
+}
+.player h1 { font-size: 28px; margin: 8px 0 0; }
+.player .item {
+  font-size: 44px;
+  font-weight: 800;
+  color: var(--primary);
+  word-break: break-word;
+  margin: 8px 0;
+}
+.player .timer { font-size: 32px; font-variant-numeric: tabular-nums; }
+.player .big-btn { width: 100%; padding: 22px; font-size: 22px; }
+.status { font-size: 20px; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--bad); }
+.status.warn { color: var(--warn); }
+
+/* ---------- ведущий ---------- */
+
+.host {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  gap: 16px;
+  padding: 16px;
+  min-height: 100vh;
+}
+@media (max-width: 900px) { .host { grid-template-columns: 1fr; } }
+
+.stage {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  min-height: 60vh;
+}
+.stage .item { font-size: clamp(48px, 9vw, 120px); font-weight: 800; color: var(--primary); }
+.stage .lyric { font-size: 24px; color: var(--muted); }
+.stage .timer { font-size: 56px; font-variant-numeric: tabular-nums; }
+.stage .headline { font-size: 40px; font-weight: 700; }
+.stage .qr { width: min(360px, 60vw); background: #ffffff; border-radius: var(--radius); }
+
+.panel { display: flex; flex-direction: column; gap: 12px; }
+.card { background: var(--surface); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.row > * { flex: 1; }
+
+.subs { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto; }
+.sub {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  border-left: 4px solid var(--border);
+  text-align: left;
+}
+.sub.accepted { border-left-color: var(--ok); }
+.sub.rejected { border-left-color: var(--bad); }
+.sub.review { border-left-color: var(--warn); }
+.sub img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; }
+.sub .actions { display: flex; gap: 6px; }
+.sub .actions button { padding: 6px 10px; }
+
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; width: 100%; }
+.gallery figure { margin: 0; }
+.gallery img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: var(--radius); background: var(--surface-2); }
+.gallery figcaption { margin-top: 4px; font-weight: 600; }
+.winner img { height: min(60vh, 560px); max-width: 70vw; aspect-ratio: 3 / 4; object-fit: cover; border-radius: var(--radius); }
+
+.login { max-width: 360px; margin: 20vh auto; display: flex; flex-direction: column; gap: 12px; padding: 0 16px; }

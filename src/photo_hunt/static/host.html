@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Фотоохота: ведущий</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <form id="login" class="login" hidden>
+    <h1>Ведущий</h1>
+    <label for="host-token">Пароль ведущего</label>
+    <input id="host-token" type="password" autocomplete="current-password" required>
+    <button class="primary" type="submit">Войти</button>
+    <p class="error" id="login-error" role="alert"></p>
+  </form>
+
+  <div id="app" class="host" hidden>
+    <section class="stage" id="stage" aria-live="polite"></section>
+
+    <aside class="panel">
+      <div class="card">
+        <strong id="summary">Загрузка…</strong>
+        <span class="muted" id="counts"></span>
+      </div>
+
+      <div class="card" id="setup">
+        <label for="song">Песня</label>
+        <select id="song"></select>
+        <label for="item">Предмет</label>
+        <input id="item" maxlength="60">
+        <label for="lyric">Строчка из песни</label>
+        <input id="lyric" maxlength="200">
+        <div class="row">
+          <div><label for="advance">Проходят дальше</label><input id="advance" type="number" min="1"></div>
+          <div><label for="duration">Секунд на фото</label><input id="duration" type="number" min="5" max="600" value="45"></div>
+        </div>
+        <button class="primary" id="btn-music" type="button">Запустить музыку</button>
+      </div>
+
+      <div class="card" id="controls">
+        <button class="primary" id="btn-hunt" type="button">Стоп: показать предмет</button>
+        <button id="btn-finish" type="button">Завершить раунд</button>
+        <button id="btn-review" type="button">Засчитать все спорные</button>
+        <audio id="audio" controls hidden></audio>
+      </div>
+
+      <div class="card">
+        <strong>Фото раунда</strong>
+        <div class="subs" id="subs"></div>
+      </div>
+
+      <div class="card">
+        <button class="bad" id="btn-reset" type="button">Начать новую игру</button>
+      </div>
+      <p class="error" id="error" role="alert"></p>
+    </aside>
+  </div>
+  <script src="/static/common.js"></script>
+  <script src="/static/host.js"></script>
+</body>
+</html>
